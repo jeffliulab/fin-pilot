@@ -55,9 +55,40 @@ fin-pilot/
 └── frontend/                     Next.js（Day 5 创建）
 ```
 
+## 快速开始
+
+详细步骤见 [`docs/QUICKSTART.md`](docs/QUICKSTART.md)。TL;DR：
+
+```bash
+# 后端
+conda create -n fin-pilot python=3.11 -y && conda activate fin-pilot
+pip install -e ".[dev]"
+cp .env.example .env  # 填 ANTHROPIC_API_KEY
+uvicorn backend.main:app --reload --port 8000
+
+# 前端（另一个终端）
+cd frontend && npm install
+cp .env.example .env.local
+npm run dev  # http://localhost:3000
+```
+
+然后浏览器开 http://localhost:3000 → 点 `600519` 快捷按钮 → 在右侧问 "为什么现金流连续两年下滑？" → 点回答里的 `[1]` 在抽屉看原文。
+
 ## 状态
 
-🚧 **v0.1.0 开发中**（2026-04-24 启动）。版本路线图见 [`VERSIONS.md`](VERSIONS.md)，当前任务见 [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)。
+✅ **v0.1.0 就绪**（2026-04-24 归档）。后端 58 个单测通过，前端 build 干净。版本路线图见 [`VERSIONS.md`](VERSIONS.md)，10 天开发日志见 [`docs/versions/v0.1.0.md`](docs/versions/v0.1.0.md)。
+
+v0.1 已实现：
+- 三栏壳子（左菜单 / 中工作区 / 右聊天）
+- 个股模块 —— A 股（AKShare）+ 美股（SEC EDGAR + yfinance），3 张卡（财务 / 公告 / 研报评级）+ sparkline + 评级分布
+- Claude 流式聊天 + `[N]` 内联引用 + 点击抽屉
+
+延期项（详见 [`docs/PRD.md`](docs/PRD.md) §5）：
+- 行业模块（v0.2）/ 市场模块（v0.3）
+- 工作区持久化 + 多 workspace（v0.4）
+- PDF.js 原文高亮（v0.5）
+- 港股（v0.6）
+- 公开部署（v0.7）
 
 本项目由 `jeffliulab/` 下的 5 个已封存仓库筛选搬运而来（详见 [`docs/SALVAGE_MAP.md`](docs/SALVAGE_MAP.md)）。
 财务（记账 / 报税 / CFO）相关内容在姐妹项目 [`agent-as-a-cfo`](https://github.com/jeffliulab/agent-as-a-cfo)。

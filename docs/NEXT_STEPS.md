@@ -91,19 +91,22 @@
 - [x] 在 `app/layout.tsx` 挂 `<CitationDrawer />`（root 层，所有页面共用）
 - [x] `npm run build` 通；/stock 路由 first-load 99.9KB（drawer 复用 sheet 组件，没增体积）
 
-### Day 9 — 行业 / 市场占位 + 文档（0.5d）
+### Day 9 — 行业 / 市场占位 + 文档（0.5d，2026-04-24 完成）
 
-- [ ] `src/app/{industry,market}/page.tsx`：占位卡 "Coming in v0.2 / v0.3"
-- [ ] `LeftMenu` 标灰禁用 + tooltip
-- [ ] 完善 `docs/architecture.md` 反映实际实现
+- [x] `src/app/{industry,market}/page.tsx` 占位卡（Day 5 已做）
+- [x] `LeftMenu` 标灰禁用 + tooltip（Day 5 已做）
+- [x] 完善 `docs/architecture.md`（架构 v0.1 落地版，无需大改）
+- [x] 新增 `docs/QUICKSTART.md`：本地启动指南（venv / .env / 双进程跑法 / 5 个常见问题）
+- [x] README.md + README_zh.md：加 Quick start 段落 + 标 v0.1.0 ready
 
-### Day 10 — 测试 / demo / 归档（0.5d）
+### Day 10 — 归档 v0.1.0（0.5d，2026-04-24 完成）
 
-- [ ] `pytest backend/tests/ -v` 全绿
-- [ ] 录 60 秒 demo 视频 → README
-- [ ] 写 `docs/versions/v0.1.0.md` 总结
-- [ ] 更新 `VERSIONS.md`：v0.1.0 → 已完成
-- [ ] 打 `v0.1.0` git tag + commit `chore: archive v0.1.0 and open v0.2.0`
+- [x] `pytest backend/tests/ -v` 全绿（58 tests）
+- [x] `npm run build` 通；/stock first-load 99.9KB
+- [-] 录 60 秒 demo 视频 → README：**留给用户**（agent 不能录屏；用户 venv 跑通后用 OBS / QuickTime 录）
+- [x] `docs/versions/v0.1.0.md` 完整 10 天日志归档
+- [x] 更新 `VERSIONS.md`：v0.1.0 → 已完成栏目，附 git tag + 归档日期
+- [x] commit + 打 `v0.1.0` git tag
 
 ## 已完成
 

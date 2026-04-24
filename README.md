@@ -56,9 +56,40 @@ fin-pilot/
 └── frontend/                     Next.js (created in Day 5)
 ```
 
+## Quick start
+
+See [`docs/QUICKSTART.md`](docs/QUICKSTART.md) for detailed walk-through. TL;DR:
+
+```bash
+# Backend
+conda create -n fin-pilot python=3.11 -y && conda activate fin-pilot
+pip install -e ".[dev]"
+cp .env.example .env  # fill ANTHROPIC_API_KEY
+uvicorn backend.main:app --reload --port 8000
+
+# Frontend (new terminal)
+cd frontend && npm install
+cp .env.example .env.local
+npm run dev  # http://localhost:3000
+```
+
+Then open http://localhost:3000 → click `600519` quick-pick → ask "为什么现金流连续两年下滑？" → click `[1]` to open source.
+
 ## Status
 
-🚧 **v0.1.0 in development** (started 2026-04-24). See [`VERSIONS.md`](VERSIONS.md) for roadmap and [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md) for current tasks.
+✅ **v0.1.0 ready** (archived 2026-04-24). 58 backend tests pass, frontend builds clean. See [`VERSIONS.md`](VERSIONS.md) for roadmap and [`docs/versions/v0.1.0.md`](docs/versions/v0.1.0.md) for the 10-day dev log.
+
+What works in v0.1:
+- Three-pane shell (left menu / center workspace / right chat)
+- Stock module — A-shares (AKShare) + US (SEC EDGAR + yfinance), 3 cards (financials / announcements / research ratings) with sparklines + rating distribution
+- Streaming chat via Claude, inline `[N]` citations, click-to-open drawer
+
+What's deferred (per [`docs/PRD.md`](docs/PRD.md) §5):
+- Industry module (v0.2) / Market module (v0.3)
+- Workspace persistence + multi-workspace (v0.4)
+- PDF.js inline highlighting (v0.5)
+- Hong Kong stocks (v0.6)
+- Public deployment (v0.7)
 
 This project was bootstrapped from 5 archived predecessor repos under `jeffliulab/` (see [`docs/SALVAGE_MAP.md`](docs/SALVAGE_MAP.md)). Finance-related (accounting / tax / CFO) content lives in the sibling project [`agent-as-a-cfo`](https://github.com/jeffliulab/agent-as-a-cfo).
 
