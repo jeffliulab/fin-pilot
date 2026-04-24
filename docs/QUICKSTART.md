@@ -34,22 +34,37 @@ cp .env.example .env
 最少需要的字段（任选一个 LLM provider 填 key）：
 
 ```
-# 三选一：
-LLM_PROVIDER=anthropic                          # 默认；用 Claude 3.5 Sonnet
+# 选一个 provider；不写 *_MODEL 用内置默认
+LLM_PROVIDER=anthropic                          # 默认 model: claude-3-5-sonnet-latest
 ANTHROPIC_API_KEY=sk-ant-xxx
+# ANTHROPIC_MODEL=claude-3-opus-latest          # 可选，覆盖默认 model
 
-# 或：用 ChatGPT
-LLM_PROVIDER=openai                             # 用 gpt-4o-mini（便宜）；改 orchestrator 默认 model 切 gpt-4o
+# 或 ChatGPT
+LLM_PROVIDER=openai                             # 默认 model: gpt-4o-mini
 OPENAI_API_KEY=sk-proj-xxx
+# OPENAI_MODEL=gpt-4o                           # 可选，更高质量
+# OPENAI_BASE_URL=https://api.together.xyz/v1   # 可选，指任意 OpenAI 兼容端点
+                                                # （Together / Groq / OpenRouter / Fireworks 等）
 
-# 或：用 DeepSeek（中文好 + 最便宜）
-LLM_PROVIDER=deepseek                           # 用 deepseek-chat
+# 或 DeepSeek（中文好 + 最便宜）
+LLM_PROVIDER=deepseek                           # 默认 model: deepseek-chat
 DEEPSEEK_API_KEY=sk-xxx
+# DEEPSEEK_MODEL=deepseek-reasoner              # 可选，用 R1 推理增强版
 
-# 这两个不论选哪 provider 都要填：
+# 或本地 Ollama（无需 API key，需先 ollama pull）
+LLM_PROVIDER=ollama                             # 默认 model: llama3.1:8b
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=qwen2.5:14b                        # 中文场景换 qwen / yi 系列效果好
+
+# 不论哪个 provider 都要填：
 SEC_EDGAR_USER_AGENT="FinPilot dev your@email"  # SEC 要求带联系方式
 CORS_ORIGINS=http://localhost:3000              # 前端地址
 ```
+
+> "类 Cursor 的通用底层框架"：4 个 provider 都用同一个 `ChatOrchestrator` + 同一个
+> Vercel AI SDK Data Stream Protocol 输出；新 provider = orchestrator 加 ~50 行
+> 分支 + 1 个 env key 即可。OpenAI base_url 还能指任意 OpenAI 兼容端点
+> （Together / Groq / OpenRouter / Fireworks），相当于多 30+ 个 model 免费拿到。
 
 ### 1.4 跑测试（可选，先确认环境健康）
 

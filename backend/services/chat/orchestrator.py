@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -23,6 +24,7 @@ from pathlib import Path
 from typing import Any, TypedDict
 
 import anthropic
+import httpx
 import openai
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from langgraph.graph import END, StateGraph
@@ -99,13 +101,26 @@ def _build_chat_graph():
 _chat_graph = _build_chat_graph()
 
 
-# Provider → 默认 model 注册表
+# Provider → 默认 model 注册表（仅当 env LLM_xxx_MODEL 没设时用这些）
 _DEFAULT_MODEL_BY_PROVIDER: dict[LLMProviderType, str] = {
     LLMProviderType.ANTHROPIC: "claude-3-5-sonnet-latest",
-    LLMProviderType.OPENAI: "gpt-4o-mini",  # 演示用，便宜快；要更好换 gpt-4o
+    LLMProviderType.OPENAI: "gpt-4o-mini",  # 便宜快；要更高质量用 OPENAI_MODEL=gpt-4o 覆盖
     LLMProviderType.DEEPSEEK: "deepseek-chat",
     LLMProviderType.OLLAMA: "llama3.1:8b",
 }
+
+
+def _resolve_model(settings: LLMSettings) -> str:
+    """根据 provider 取 env 覆盖；空则 fallback 到默认注册表."""
+    if settings.provider == LLMProviderType.ANTHROPIC:
+        return settings.anthropic_model or _DEFAULT_MODEL_BY_PROVIDER[settings.provider]
+    if settings.provider == LLMProviderType.OPENAI:
+        return settings.openai_model or _DEFAULT_MODEL_BY_PROVIDER[settings.provider]
+    if settings.provider == LLMProviderType.DEEPSEEK:
+        return settings.deepseek_model or _DEFAULT_MODEL_BY_PROVIDER[settings.provider]
+    if settings.provider == LLMProviderType.OLLAMA:
+        return settings.ollama_model or _DEFAULT_MODEL_BY_PROVIDER[settings.provider]
+    return ""
 
 
 # === Orchestrator ===
@@ -114,11 +129,16 @@ class ChatOrchestrator:
 
     ``stream(request)`` 返回 async iterator，routes 层逐个 chunk emit 给前端。
 
-    Streaming provider 支持：
+    Streaming provider 支持（agent-rules / "类 Cursor 通用框架"）：
       - anthropic（Claude，原生 SDK）
-      - openai（gpt-4o / gpt-4o-mini，OpenAI 原生 SDK）
-      - deepseek（OpenAI 兼容协议，复用 openai SDK + 不同 base_url）
-      - ollama（v0.2，目前 raise）
+      - openai（gpt-4o-mini / gpt-4o / gpt-4-turbo，OpenAI 原生 SDK；可
+        通过 OPENAI_BASE_URL 指任意 OpenAI 兼容端点：Together AI / Groq /
+        OpenRouter / Fireworks 等）
+      - deepseek（OpenAI 兼容协议，预设 base_url=https://api.deepseek.com）
+      - ollama（本地模型，自家 NDJSON 协议 over HTTP）
+
+    Model 默认在 ``_DEFAULT_MODEL_BY_PROVIDER``，可通过 env 覆盖：
+      - ANTHROPIC_MODEL / OPENAI_MODEL / DEEPSEEK_MODEL / OLLAMA_MODEL
     """
 
     def __init__(self, settings: LLMSettings | None = None) -> None:
@@ -126,7 +146,7 @@ class ChatOrchestrator:
             settings = get_settings().llm
         self._settings = settings
         self._provider = settings.provider
-        self._model = _DEFAULT_MODEL_BY_PROVIDER.get(self._provider, "")
+        self._model = _resolve_model(settings)
         self._client: Any = None  # 类型按 provider 不同；下面分支化构造
 
         if self._provider == LLMProviderType.ANTHROPIC:
@@ -155,10 +175,18 @@ class ChatOrchestrator:
                 base_url="https://api.deepseek.com",
             )
 
+        elif self._provider == LLMProviderType.OLLAMA:
+            # Ollama 用自家 HTTP NDJSON 协议，不复用 openai SDK
+            # （Ollama 也提供 OpenAI 兼容 endpoint，但默认 native API 字段更全）
+            self._client = httpx.AsyncClient(
+                base_url=settings.ollama_host,
+                timeout=httpx.Timeout(60.0, read=300.0),  # 本地推理可能慢
+            )
+
         else:
             raise ValueError(
-                f"v0.1 streaming 暂不支持 provider={self._provider.value}；"
-                f"目前支持 anthropic / openai / deepseek"
+                f"未知 provider={self._provider.value}；当前支持 "
+                f"anthropic / openai / deepseek / ollama"
             )
 
     async def stream(self, request: ChatRequest) -> AsyncIterator[ChatChunk]:
@@ -186,6 +214,9 @@ class ChatOrchestrator:
         # 2. 按 provider 分支 streaming
         if self._provider == LLMProviderType.ANTHROPIC:
             async for chunk in self._stream_anthropic(prepared, request):
+                yield chunk
+        elif self._provider == LLMProviderType.OLLAMA:
+            async for chunk in self._stream_ollama(prepared, request):
                 yield chunk
         else:
             # openai 或 deepseek（同走 openai SDK）
@@ -246,6 +277,63 @@ class ChatOrchestrator:
         except openai.APIError as exc:
             logger.error("OpenAI API error: %s", exc)
             yield ChatChunk(type="error", content=f"OpenAI API error: {exc}")
+            return
+
+        yield ChatChunk(
+            type="finish",
+            citations=request.citations,
+            finish_reason=finish_reason or "stop",
+        )
+
+    async def _stream_ollama(
+        self, prepared: dict, request: ChatRequest
+    ) -> AsyncIterator[ChatChunk]:
+        """Ollama native streaming: POST /api/chat with stream=true → NDJSON.
+
+        Each line: {"model":"...","message":{"role":"assistant","content":"..."},"done":false}
+        Final line: {"model":"...","done":true,"done_reason":"stop",...}
+        """
+        finish_reason: str | None = None
+        body = {
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": prepared["rendered_system"]},
+                {"role": "user", "content": prepared["rendered_prompt"]},
+            ],
+            "stream": True,
+            "options": {
+                "temperature": self._settings.temperature,
+                "num_predict": 2048,
+            },
+        }
+        try:
+            async with self._client.stream(
+                "POST", "/api/chat", json=body
+            ) as response:
+                if response.status_code != 200:
+                    body_text = await response.aread()
+                    yield ChatChunk(
+                        type="error",
+                        content=f"Ollama HTTP {response.status_code}: {body_text.decode()[:300]}",
+                    )
+                    return
+                async for line in response.aiter_lines():
+                    if not line.strip():
+                        continue
+                    try:
+                        obj = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    msg = obj.get("message")
+                    if msg and isinstance(msg, dict):
+                        delta = msg.get("content")
+                        if delta:
+                            yield ChatChunk(type="delta", content=delta)
+                    if obj.get("done"):
+                        finish_reason = obj.get("done_reason", "stop")
+        except httpx.HTTPError as exc:
+            logger.error("Ollama HTTP error: %s", exc)
+            yield ChatChunk(type="error", content=f"Ollama HTTP error: {exc}")
             return
 
         yield ChatChunk(

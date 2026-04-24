@@ -40,6 +40,12 @@ class LLMSettings(BaseSettings):
     openai_base_url: str | None = Field(default=None, validation_alias="OPENAI_BASE_URL")
     deepseek_api_key: str = Field(default="", validation_alias="DEEPSEEK_API_KEY")
     ollama_host: str = Field(default="http://localhost:11434", validation_alias="OLLAMA_HOST")
+
+    # 各 provider 的 model name 可在 env 覆盖（空字符串 = 用 orchestrator 内置默认）
+    # e.g. OPENAI_MODEL=gpt-4o / ANTHROPIC_MODEL=claude-3-opus-latest
+    anthropic_model: str = Field(default="", validation_alias="ANTHROPIC_MODEL")
+    openai_model: str = Field(default="", validation_alias="OPENAI_MODEL")
+    deepseek_model: str = Field(default="", validation_alias="DEEPSEEK_MODEL")
     ollama_model: str = Field(default="llama3.1:8b", validation_alias="OLLAMA_MODEL")
 
     # 通用采样参数
