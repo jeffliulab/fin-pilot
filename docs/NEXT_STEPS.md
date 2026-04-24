@@ -39,12 +39,14 @@
 - [x] `backend/main.py` —— FastAPI app factory + lifespan + CORS 白名单 + 注册 routes；`uvicorn backend.main:app --reload --port 8000`
 - [x] 测试：`test_company_overview.py`（5）+ `test_main_app.py`（6）；累计 46 tests 全绿
 
-### Day 4 — 后端：chat + LLM（1d）
+### Day 4 — 后端：chat + LLM（1d，2026-04-24 完成）
 
-- [ ] `backend/services/chat/orchestrator.py`：LangGraph 单 agent 起步
-- [ ] `backend/routes/chat.py`：`POST /api/v1/chat/stream`（SSE）
-- [ ] `backend/data/prompts/stock/{system_prompt,company_overview,follow_up}.j2`
-- [ ] 端到端 curl smoke test
+- [x] `backend/data/prompts/stock/{system_prompt,follow_up,company_overview}.j2`：3 个 Jinja2 模板（system 强制 `[N]` 引用规则；follow_up 把 cards/citations/user_message 注入；company_overview 留 v0.2 占位）
+- [x] `backend/services/chat/orchestrator.py`：LangGraph 单节点 graph（`prepare` 节点渲染 prompt）+ Anthropic AsyncAnthropic 直接做 streaming；`ChatChunk` 三种类型（delta / finish / error）
+- [x] `backend/routes/chat.py`：`POST /api/v1/chat/stream`，输出 **Vercel AI SDK Data Stream Protocol**（`0:"text"` / `2:[{...}]` / `d:{...}` 行级前缀），前端 `useChat` 开箱即用；header `x-vercel-ai-data-stream: v1`
+- [x] 在 `backend/main.py` 注册 chat router
+- [x] 测试：`test_chat_orchestrator.py`（5）+ `test_chat_route.py`（7）；累计 58 tests 全绿
+- [x] 烟测通过 TestClient 完成；真 `curl localhost:8000/api/v1/chat/stream` 端到端 smoke 待用户本地 venv + ANTHROPIC_API_KEY
 
 ### Day 5 — 前端：项目初始化 + 三栏壳（1d）
 

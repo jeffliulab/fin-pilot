@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend import __version__
 from backend.config import get_settings
-from backend.routes import health, stock
+from backend.routes import chat, health, stock
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,8 @@ def create_app() -> FastAPI:
     # 注册 routes
     app.include_router(health.router)
     app.include_router(stock.router)
-    # v0.2 加 industry router；v0.3 加 market router；Day 4 加 chat router
+    app.include_router(chat.router)
+    # v0.2 加 industry router；v0.3 加 market router
 
     return app
 

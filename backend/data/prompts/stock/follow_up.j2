@@ -1,0 +1,47 @@
+{# 用户追问的 prompt 模板：把工作区当前卡片 + 引用源注入，再贴用户问题 #}
+{# 模板变量：cards（list[dict]）, citations（list[dict, 含 label/source_name/url]）, user_message（str） #}
+
+## 当前工作区上下文
+
+下面是用户当前看到的工作区卡片（按你的能力**只用这些数据**回答问题；
+不要假设工作区之外的事实）：
+
+{% for card in cards %}
+### 卡片 {{ loop.index }}：{{ card.title }}（{{ card.card_type }}）
+
+{% if card.card_type == 'financial_kpi' %}
+币种：{{ card.payload.currency }}
+{% for item in card.payload.summary %}
+- **{{ item.display_name }}**（最新 {{ item.latest_period }}）：{{ item.latest_value }} {{ item.unit }}
+  - 4 期趋势（旧→新，期间：{{ item.trend_periods | join(' / ') }}）：{{ item.trend | join(' → ') }}
+{% endfor %}
+
+{% elif card.card_type == 'announcement_timeline' %}
+最近公告（共 {{ card.payload['items'] | length }} 条）：
+{% for ann in card.payload['items'][:10] %}
+- [{{ ann.date }}] {{ ann.type }} — {{ ann.title }}{% if ann.url %} ({{ ann.url }}){% endif %}
+{% endfor %}
+
+{% elif card.card_type == 'research_report' %}
+共识目标价：{{ card.payload.consensus_target if card.payload.consensus_target else '暂无' }}（基于 {{ card.payload.consensus_target_basis }} 份研报）
+评级分布：{{ card.payload.rating_distribution }}
+最近研报样本（前 5 条）：
+{% for r in card.payload['items'][:5] %}
+- [{{ r.date }}] {{ r.institution }}{% if r.analyst %} / {{ r.analyst }}{% endif %} — {{ r.title }} | 评级：{{ r.rating or 'N/A' }}{% if r.target_price %}，目标价 {{ r.target_price }} {{ r.price_currency }}{% endif %}
+{% endfor %}
+
+{% else %}
+（未知卡片类型 {{ card.card_type }}，跳过）
+{% endif %}
+{% endfor %}
+
+## 可用引用源
+
+回答时引用下面的 `[N]`：
+{% for cite in citations %}
+- {{ cite.label }} {{ cite.source_name }}{% if cite.url %} — {{ cite.url }}{% endif %}
+{% endfor %}
+
+## 用户问题
+
+{{ user_message }}

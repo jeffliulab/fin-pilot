@@ -1,0 +1,18 @@
+{# 占位：v0.2 用 ── 让 LLM 给公司主页生成"分析师视角的 1 段话总结" #}
+{# 当前 v0.1 的公司主页是机械拼装 3 张卡，不调 LLM；此模板留位置 #}
+{# 模板变量：company_name, financial_summary, announcement_summary #}
+
+## 任务
+
+给出 **{{ company_name }}** 一段 100-150 字的分析师视角总结。
+
+## 输入
+
+- 财务速览：{{ financial_summary }}
+- 近期公告要点：{{ announcement_summary }}
+
+## 要求
+
+- 中文，纯文字，不分点
+- 不下结论"是否买入"，只描述当前态势
+- 数字带 `[N]` 引用
