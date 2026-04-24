@@ -48,14 +48,15 @@
 - [x] 测试：`test_chat_orchestrator.py`（5）+ `test_chat_route.py`（7）；累计 58 tests 全绿
 - [x] 烟测通过 TestClient 完成；真 `curl localhost:8000/api/v1/chat/stream` 端到端 smoke 待用户本地 venv + ANTHROPIC_API_KEY
 
-### Day 5 — 前端：项目初始化 + 三栏壳（1d）
+### Day 5 — 前端：项目初始化 + 三栏壳（1d，2026-04-24 完成）
 
-- [ ] `cd frontend && npx create-next-app@14 . --typescript --tailwind --app`
-- [ ] 装 `zustand @tanstack/react-query lucide-react ai @ai-sdk/react @ai-sdk/anthropic recharts`
-- [ ] `npx shadcn@latest init` + 装 `button card drawer input scroll-area`
-- [ ] `src/app/layout.tsx`：三栏 grid
-- [ ] `src/components/{ThreePaneLayout,LeftMenu,WorkspaceCanvas,ChatPanel}.tsx`（壳）
-- [ ] `npm run dev` 看到三栏空壳
+- [x] `cd frontend && npx create-next-app@14 . --typescript --tailwind --app --src-dir --eslint`
+- [x] 装 `zustand @tanstack/react-query lucide-react ai @ai-sdk/react @ai-sdk/anthropic recharts clsx class-variance-authority tailwind-merge tailwindcss-animate`
+- [x] `npx shadcn@latest init --defaults` + 装 `card input scroll-area sheet`（sheet = Radix Drawer 的 shadcn 包装）
+- [x] **修 shadcn v4-by-default vs Tailwind v3 mismatch**：手写 shadcn-v3 标准 globals.css（HSL CSS variables）+ tailwind.config.ts（colors / borderRadius / tailwindcss-animate plugin）
+- [x] 三栏 layout：`src/components/{ThreePaneLayout,LeftMenu,WorkspaceCanvas,ChatPanel}.tsx`
+- [x] 模块路由：`src/app/{stock,industry,market}/page.tsx`（个股是占位输入条；行业/市场是 Coming-in-vX 占位）+ 根 `page.tsx` 重定向到 `/stock`
+- [x] `npm run build` 编译过；`npm run dev` 起在 :3001（3000 占用），curl `/stock` HTTP 200，HTML 验证三栏 + LeftMenu 高亮 + 占位文本全部 OK
 
 ### Day 6 — 前端：个股 module 数据流（1d）
 
