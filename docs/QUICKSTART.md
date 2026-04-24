@@ -31,11 +31,22 @@ cp .env.example .env
 # 编辑 .env，至少填 ANTHROPIC_API_KEY
 ```
 
-最少需要的字段：
+最少需要的字段（任选一个 LLM provider 填 key）：
 
 ```
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-xxx                    # 必填
+# 三选一：
+LLM_PROVIDER=anthropic                          # 默认；用 Claude 3.5 Sonnet
+ANTHROPIC_API_KEY=sk-ant-xxx
+
+# 或：用 ChatGPT
+LLM_PROVIDER=openai                             # 用 gpt-4o-mini（便宜）；改 orchestrator 默认 model 切 gpt-4o
+OPENAI_API_KEY=sk-proj-xxx
+
+# 或：用 DeepSeek（中文好 + 最便宜）
+LLM_PROVIDER=deepseek                           # 用 deepseek-chat
+DEEPSEEK_API_KEY=sk-xxx
+
+# 这两个不论选哪 provider 都要填：
 SEC_EDGAR_USER_AGENT="FinPilot dev your@email"  # SEC 要求带联系方式
 CORS_ORIGINS=http://localhost:3000              # 前端地址
 ```

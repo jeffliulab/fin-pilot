@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from backend.config import LLMProviderType
 from backend.interfaces import Citation
 from backend.services.chat.orchestrator import (
     ChatChunk,
@@ -117,6 +118,7 @@ def orchestrator_with_chunks() -> Any:
         orch = ChatOrchestrator.__new__(ChatOrchestrator)
         orch._settings = MagicMock()
         orch._settings.temperature = 0.5
+        orch._provider = LLMProviderType.ANTHROPIC
         orch._client = _FakeAsyncAnthropic(chunks, finish_reason)
         orch._model = "claude-test"
         return orch

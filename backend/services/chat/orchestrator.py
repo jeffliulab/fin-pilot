@@ -20,13 +20,14 @@ import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import anthropic
+import openai
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from langgraph.graph import END, StateGraph
 
-from backend.config import LLMSettings, get_settings
+from backend.config import LLMProviderType, LLMSettings, get_settings
 from backend.interfaces import Citation
 
 logger = logging.getLogger(__name__)
@@ -98,33 +99,71 @@ def _build_chat_graph():
 _chat_graph = _build_chat_graph()
 
 
+# Provider → 默认 model 注册表
+_DEFAULT_MODEL_BY_PROVIDER: dict[LLMProviderType, str] = {
+    LLMProviderType.ANTHROPIC: "claude-3-5-sonnet-latest",
+    LLMProviderType.OPENAI: "gpt-4o-mini",  # 演示用，便宜快；要更好换 gpt-4o
+    LLMProviderType.DEEPSEEK: "deepseek-chat",
+    LLMProviderType.OLLAMA: "llama3.1:8b",
+}
+
+
 # === Orchestrator ===
 class ChatOrchestrator:
     """协调 prompt prep + LLM streaming + finish event 三段。
 
     ``stream(request)`` 返回 async iterator，routes 层逐个 chunk emit 给前端。
+
+    Streaming provider 支持：
+      - anthropic（Claude，原生 SDK）
+      - openai（gpt-4o / gpt-4o-mini，OpenAI 原生 SDK）
+      - deepseek（OpenAI 兼容协议，复用 openai SDK + 不同 base_url）
+      - ollama（v0.2，目前 raise）
     """
 
     def __init__(self, settings: LLMSettings | None = None) -> None:
         if settings is None:
             settings = get_settings().llm
         self._settings = settings
-        # v0.1 默认 Claude；其他 provider 走 v0.2 切换（routes 现只暴露 anthropic
-        # 路径，避免 streaming 各 provider 接口差异污染 v0.1）
-        if not settings.anthropic_api_key:
-            raise ValueError("ANTHROPIC_API_KEY 未设置；v0.1 streaming 默认 Claude")
-        self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-        self._model = "claude-3-5-sonnet-latest"
+        self._provider = settings.provider
+        self._model = _DEFAULT_MODEL_BY_PROVIDER.get(self._provider, "")
+        self._client: Any = None  # 类型按 provider 不同；下面分支化构造
+
+        if self._provider == LLMProviderType.ANTHROPIC:
+            if not settings.anthropic_api_key:
+                raise ValueError(
+                    "ANTHROPIC_API_KEY 未设置（LLM_PROVIDER=anthropic）"
+                )
+            self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+
+        elif self._provider == LLMProviderType.OPENAI:
+            if not settings.openai_api_key:
+                raise ValueError("OPENAI_API_KEY 未设置（LLM_PROVIDER=openai）")
+            self._client = openai.AsyncOpenAI(
+                api_key=settings.openai_api_key,
+                base_url=settings.openai_base_url,
+            )
+
+        elif self._provider == LLMProviderType.DEEPSEEK:
+            if not settings.deepseek_api_key:
+                raise ValueError(
+                    "DEEPSEEK_API_KEY 未设置（LLM_PROVIDER=deepseek）"
+                )
+            # DeepSeek 完全兼容 OpenAI 协议，用 openai SDK + 自家 base_url
+            self._client = openai.AsyncOpenAI(
+                api_key=settings.deepseek_api_key,
+                base_url="https://api.deepseek.com",
+            )
+
+        else:
+            raise ValueError(
+                f"v0.1 streaming 暂不支持 provider={self._provider.value}；"
+                f"目前支持 anthropic / openai / deepseek"
+            )
 
     async def stream(self, request: ChatRequest) -> AsyncIterator[ChatChunk]:
-        """Yield ChatChunk per Claude SSE event + final finish chunk.
-
-        Stages：
-            1. LangGraph prepare 节点渲染 prompts（同步，~ms）
-            2. Anthropic AsyncAnthropic 流式 chat completion（每个 token 一个 delta）
-            3. finish chunk 携带 citations 列表（前端用来渲染右侧抽屉）
-        """
-        # 1. Prepare via graph
+        """Yield ChatChunk per provider stream event + final finish chunk."""
+        # 1. Prepare via LangGraph
         prepared = await _chat_graph.ainvoke(
             {
                 "user_message": request.message,
@@ -137,13 +176,25 @@ class ChatOrchestrator:
         )
 
         logger.debug(
-            "chat orchestrator: model=%s, prompt_chars=%d, citations=%d",
+            "chat orchestrator: provider=%s, model=%s, prompt_chars=%d, citations=%d",
+            self._provider.value,
             self._model,
             len(prepared["rendered_prompt"]),
             len(request.citations),
         )
 
-        # 2. Stream from Claude
+        # 2. 按 provider 分支 streaming
+        if self._provider == LLMProviderType.ANTHROPIC:
+            async for chunk in self._stream_anthropic(prepared, request):
+                yield chunk
+        else:
+            # openai 或 deepseek（同走 openai SDK）
+            async for chunk in self._stream_openai(prepared, request):
+                yield chunk
+
+    async def _stream_anthropic(
+        self, prepared: dict, request: ChatRequest
+    ) -> AsyncIterator[ChatChunk]:
         finish_reason: str | None = None
         try:
             async with self._client.messages.stream(
@@ -155,7 +206,6 @@ class ChatOrchestrator:
             ) as stream:
                 async for text in stream.text_stream:
                     yield ChatChunk(type="delta", content=text)
-                # 取 finish reason
                 final = await stream.get_final_message()
                 finish_reason = final.stop_reason or "stop"
         except anthropic.APIError as exc:
@@ -163,7 +213,41 @@ class ChatOrchestrator:
             yield ChatChunk(type="error", content=f"Anthropic API error: {exc}")
             return
 
-        # 3. Finish
+        yield ChatChunk(
+            type="finish",
+            citations=request.citations,
+            finish_reason=finish_reason or "stop",
+        )
+
+    async def _stream_openai(
+        self, prepared: dict, request: ChatRequest
+    ) -> AsyncIterator[ChatChunk]:
+        finish_reason: str | None = None
+        try:
+            stream = await self._client.chat.completions.create(
+                model=self._model,
+                temperature=self._settings.temperature,
+                max_tokens=2048,
+                stream=True,
+                messages=[
+                    {"role": "system", "content": prepared["rendered_system"]},
+                    {"role": "user", "content": prepared["rendered_prompt"]},
+                ],
+            )
+            async for chunk in stream:
+                if not chunk.choices:
+                    continue
+                choice = chunk.choices[0]
+                delta_content = getattr(choice.delta, "content", None)
+                if delta_content:
+                    yield ChatChunk(type="delta", content=delta_content)
+                if choice.finish_reason:
+                    finish_reason = choice.finish_reason
+        except openai.APIError as exc:
+            logger.error("OpenAI API error: %s", exc)
+            yield ChatChunk(type="error", content=f"OpenAI API error: {exc}")
+            return
+
         yield ChatChunk(
             type="finish",
             citations=request.citations,
