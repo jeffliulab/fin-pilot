@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThreePaneLayout } from "@/components/ThreePaneLayout";
 import { LeftMenu } from "@/components/LeftMenu";
 import { ChatPanel } from "@/components/ChatPanel";
+import { CitationDrawer } from "@/components/CitationDrawer";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -38,6 +39,7 @@ export default function RootLayout({
           center={children}
           right={<ChatPanel />}
         />
+        <CitationDrawer />
       </body>
     </html>
   );

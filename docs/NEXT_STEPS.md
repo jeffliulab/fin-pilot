@@ -83,12 +83,13 @@
 - [x] 重写 `src/components/ChatPanel.tsx` —— 集成 useChatStream + workspaceStore；切 ticker 自动 reset 对话；流式中显 Stop 按钮；未选 ticker 时输入框 disabled + 提示文案；`collectCitations()` 从 cards 聚合去重并重排 `[N]`
 - [x] `npm run build` 通；首屏体积没变（chat 组件复用 ScrollArea / Input / Button）
 
-### Day 8 — Citation drawer（0.5d）
+### Day 8 — Citation drawer（0.5d，2026-04-24 完成）
 
-- [ ] `src/components/CitationDrawer.tsx`
-- [ ] `src/stores/citationStore.ts`
-- [ ] 角标 onClick → drawer 抽出 + iframe 加载 URL
-- [ ] A 股点角标打开巨潮；美股点打开 EDGAR
+- [x] `src/stores/citationStore.ts` —— zustand：`{isOpen, active, open(citation), close()}`
+- [x] `src/components/CitationDrawer.tsx` —— shadcn Sheet（side="right" max-w-2xl），头部显 [N] + source_name + URL + 外链 ↗，正文 iframe 加载 url（sandbox），底部 fallback 提示（"X-Frame-Options 禁嵌入时点 ↗ 新标签打开；v0.5 上 PDF.js 高亮"）
+- [x] 重写 `CitationLabel.tsx` —— 调 citationStore.open() 替代 Day 6 的 window.open，统一走 drawer
+- [x] 在 `app/layout.tsx` 挂 `<CitationDrawer />`（root 层，所有页面共用）
+- [x] `npm run build` 通；/stock 路由 first-load 99.9KB（drawer 复用 sheet 组件，没增体积）
 
 ### Day 9 — 行业 / 市场占位 + 文档（0.5d）
 
