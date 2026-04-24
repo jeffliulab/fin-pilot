@@ -75,11 +75,13 @@
 - [x] `src/app/stock/page.tsx` —— TickerInput 上 + CompanyView 下
 - [x] `npm run build` 通；/stock 路由 first-load 101KB（recharts ~70KB 主因）
 
-### Day 7 — 前端：ChatPanel + Vercel AI SDK（1d）
+### Day 7 — 前端：ChatPanel + 流式回答（1d，2026-04-24 完成）
 
-- [ ] `src/hooks/useChat.ts`（基于 `@ai-sdk/react` 的 `useChat`）
-- [ ] `src/features/stock/ChatStream.tsx`：流式渲染 + `[N]` 角标内嵌
-- [ ] 端到端：问"现金流为啥两年下滑？" 看到流 + 角标
+- [x] `src/types/chat.ts` —— ChatMessage / ChatRole / ChatStreamStatus
+- [x] `src/hooks/useChatStream.ts` —— 自写 hook 解析 backend Vercel AI SDK Data Stream Protocol（不复用 `@ai-sdk/react` useChat 因 backend 形状是 `{message, cards, citations}` 不是 OpenAI 风格 messages 数组，转译成本不如自己写 80 行）。包含 abort 控制、状态管理、buffer 切行
+- [x] `src/features/stock/ChatStream.tsx` —— 渲染对话气泡；assistant 文本用 regex 切 `[N]` → CitationLabel；user 在右、assistant 在左、error 红框
+- [x] 重写 `src/components/ChatPanel.tsx` —— 集成 useChatStream + workspaceStore；切 ticker 自动 reset 对话；流式中显 Stop 按钮；未选 ticker 时输入框 disabled + 提示文案；`collectCitations()` 从 cards 聚合去重并重排 `[N]`
+- [x] `npm run build` 通；首屏体积没变（chat 组件复用 ScrollArea / Input / Button）
 
 ### Day 8 — Citation drawer（0.5d）
 
