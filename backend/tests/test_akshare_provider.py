@@ -54,19 +54,20 @@ def _make_financial_df() -> pd.DataFrame:
 
 
 def _make_notice_df() -> pd.DataFrame:
+    """模拟 ak.stock_zh_a_disclosure_report_cninfo 的返回（AKShare 1.18+）."""
     return pd.DataFrame(
         {
             "代码": ["600519", "600519"],
-            "名称": ["贵州茅台", "贵州茅台"],
+            "简称": ["贵州茅台", "贵州茅台"],
             "公告标题": ["2024 年度业绩快报", "关于召开股东大会的通知"],
-            "公告类型": ["业绩报告", "股东大会"],
-            "公告日期": ["2024-12-30", "2024-12-15"],
-            "网址": ["http://example.com/a.pdf", "http://example.com/b.pdf"],
+            "公告时间": ["2024-12-30", "2024-12-15"],
+            "公告链接": ["http://example.com/a.pdf", "http://example.com/b.pdf"],
         }
     )
 
 
 def _make_research_df() -> pd.DataFrame:
+    """模拟 ak.stock_research_report_em 的返回（AKShare 1.18：'日期'/'报告PDF链接'，无空格）."""
     return pd.DataFrame(
         {
             "股票代码": ["600519"],
@@ -74,10 +75,9 @@ def _make_research_df() -> pd.DataFrame:
             "报告名称": ["2024Q4 点评：业绩超预期"],
             "东财评级": ["买入"],
             "机构": ["中信证券"],
-            "最新目标价": [2200.0],
-            "报告日期": ["2024-11-05"],
+            "日期": ["2024-11-05"],
             "分析师": ["张三"],
-            "报告 PDF 链接": ["http://example.com/r.pdf"],
+            "报告PDF链接": ["http://example.com/r.pdf"],
         }
     )
 
@@ -93,7 +93,7 @@ class FakeAk:
     def stock_financial_abstract(self, symbol: str) -> Any:
         return self._fin
 
-    def stock_notice_report(self, symbol: str) -> Any:
+    def stock_zh_a_disclosure_report_cninfo(self, symbol: str) -> Any:
         return self._notice
 
     def stock_research_report_em(self, symbol: str) -> Any:
@@ -156,7 +156,8 @@ class TestAKShareProvider:
         assert len(items) == 1
         assert items[0].title.startswith("2024 年度业绩快报")
         assert items[0].date == "2024-12-30"
-        assert items[0].type == "业绩报告"
+        # cninfo 接口无 "公告类型" 列，type 为空字符串
+        assert items[0].type == ""
         assert items[0].url.endswith(".pdf")
 
     def test_get_announcements_empty_df_returns_empty_list(self) -> None:
@@ -172,7 +173,8 @@ class TestAKShareProvider:
         assert report.title == "2024Q4 点评：业绩超预期"
         assert report.institution == "中信证券"
         assert report.rating == "买入"
-        assert report.target_price == 2200.0
+        # AKShare 1.18 stock_research_report_em 不再返"最新目标价"列；fallback 为 None
+        assert report.target_price is None
         assert report.price_currency == "CNY"
         assert report.analyst == "张三"
         assert report.url and report.url.endswith(".pdf")

@@ -65,6 +65,14 @@ def _to_sina_format(ticker: str) -> str:
     raise ValueError(f"Unrecognized A-share ticker: {ticker}")
 
 
+def _normalize_period(raw: str) -> str:
+    """AKShare 期间列名是 'YYYYMMDD'（如 '20260331'）；标准化为 'YYYY-MM-DD'."""
+    s = str(raw).strip()
+    if len(s) == 8 and s.isdigit():
+        return f"{s[:4]}-{s[4:6]}-{s[6:8]}"
+    return s
+
+
 # === Provider ===
 class AKShareProvider:
     """A 股市场数据 provider，实现 ``MarketDataProvider`` Protocol。"""
@@ -129,7 +137,12 @@ class AKShareProvider:
                 # 比例类指标（毛利率 / ROE / 资产负债率）单位是 %
                 unit = "%" if en_name in {"gross_margin", "roe", "debt_ratio"} else "CNY"
                 metric_list.append(
-                    FinancialMetric(name=en_name, period=str(period), value=value, unit=unit)
+                    FinancialMetric(
+                        name=en_name,
+                        period=_normalize_period(period),
+                        value=value,
+                        unit=unit,
+                    )
                 )
             metrics[en_name] = metric_list
 
@@ -151,41 +164,57 @@ class AKShareProvider:
     def get_announcements(
         self, ticker: str, limit: int = DEFAULT_ANNOUNCEMENT_LIMIT
     ) -> list[Announcement]:
-        """Fetch recent announcements via ``stock_notice_report``.
+        """Per-stock announcements via ``stock_zh_a_disclosure_report_cninfo``.
 
-        返回 DataFrame 列约定（AKShare 1.15+）：
-            代码 | 名称 | 公告标题 | 公告类型 | 公告日期 | 网址
+        AKShare 1.18 列约定：
+            代码 | 简称 | 公告标题 | 公告时间 | 公告链接
+
+        注：旧 ``stock_notice_report`` 的 ``symbol`` 参数其实是市场分类（"全部"
+        / "沪深京A股"），不是 ticker；切换到 cninfo 接口拿 per-stock 公告。
         """
         code = _strip_suffix(ticker)
         ak = self._akshare()
         try:
-            df = ak.stock_notice_report(symbol=code)
+            df = ak.stock_zh_a_disclosure_report_cninfo(symbol=code)
         except Exception as exc:
             raise DataSourceError(
-                "AKShare", f"stock_notice_report({code}) 失败", cause=exc
+                "AKShare",
+                f"stock_zh_a_disclosure_report_cninfo({code}) 失败",
+                cause=exc,
             ) from exc
 
         if df is None or df.empty:
             return []
 
-        # AKShare 列名可能是中文或英文，做容错
+        # 列名容错（cninfo 接口标准列名）
         col_title = next((c for c in df.columns if c in ("公告标题", "title")), None)
-        col_type = next((c for c in df.columns if c in ("公告类型", "type", "类型")), None)
-        col_date = next((c for c in df.columns if c in ("公告日期", "date", "日期")), None)
-        col_url = next((c for c in df.columns if c in ("网址", "url", "链接")), None)
+        col_date = next(
+            (c for c in df.columns if c in ("公告时间", "公告日期", "date", "日期")),
+            None,
+        )
+        col_url = next(
+            (c for c in df.columns if c in ("公告链接", "网址", "url", "链接")), None
+        )
+        col_type = next(
+            (c for c in df.columns if c in ("公告类型", "type", "类型")), None
+        )
 
         if not (col_title and col_date):
-            logger.warning("stock_notice_report DataFrame columns 未识别: %s", list(df.columns))
+            logger.warning(
+                "stock_zh_a_disclosure_report_cninfo columns 未识别: %s",
+                list(df.columns),
+            )
             return []
 
         items: list[Announcement] = []
         for _, row in df.head(limit).iterrows():
+            url_val = row.get(col_url) if col_url else None
             items.append(
                 Announcement(
                     title=str(row[col_title]),
                     date=str(row[col_date])[:10],
                     type=str(row[col_type]) if col_type else "",
-                    url=str(row[col_url]) if col_url and row[col_url] else "",
+                    url=str(url_val) if url_val else "",
                 )
             )
         return items
@@ -213,16 +242,40 @@ class AKShareProvider:
         if df is None or df.empty:
             return []
 
-        col_title = next((c for c in df.columns if c in ("报告名称", "title", "研报名称")), None)
-        col_inst = next((c for c in df.columns if c in ("机构", "institution", "研究机构")), None)
-        col_rating = next((c for c in df.columns if c in ("东财评级", "rating", "评级")), None)
-        col_target = next((c for c in df.columns if c in ("最新目标价", "target_price", "目标价")), None)
-        col_date = next((c for c in df.columns if c in ("报告日期", "date", "日期")), None)
-        col_analyst = next((c for c in df.columns if c in ("分析师", "analyst")), None)
-        col_url = next((c for c in df.columns if c in ("报告 PDF 链接", "url", "链接", "PDF 链接")), None)
+        col_title = next(
+            (c for c in df.columns if c in ("报告名称", "title", "研报名称")), None
+        )
+        col_inst = next(
+            (c for c in df.columns if c in ("机构", "institution", "研究机构")), None
+        )
+        col_rating = next(
+            (c for c in df.columns if c in ("东财评级", "rating", "评级")), None
+        )
+        # AKShare 1.18 没"最新目标价"列；保留容错
+        col_target = next(
+            (c for c in df.columns if c in ("最新目标价", "target_price", "目标价")), None
+        )
+        # AKShare 1.18 列名是 "日期"，旧版本是 "报告日期"
+        col_date = next(
+            (c for c in df.columns if c in ("日期", "报告日期", "date")), None
+        )
+        col_analyst = next(
+            (c for c in df.columns if c in ("分析师", "analyst")), None
+        )
+        # AKShare 1.18 列名是 "报告PDF链接"（无空格），旧版本带空格
+        col_url = next(
+            (
+                c
+                for c in df.columns
+                if c in ("报告PDF链接", "报告 PDF 链接", "url", "链接", "PDF链接")
+            ),
+            None,
+        )
 
         if not (col_title and col_inst and col_date):
-            logger.warning("stock_research_report_em columns 未识别: %s", list(df.columns))
+            logger.warning(
+                "stock_research_report_em columns 未识别: %s", list(df.columns)
+            )
             return []
 
         items: list[ResearchReport] = []
