@@ -58,13 +58,22 @@
 - [x] 模块路由：`src/app/{stock,industry,market}/page.tsx`（个股是占位输入条；行业/市场是 Coming-in-vX 占位）+ 根 `page.tsx` 重定向到 `/stock`
 - [x] `npm run build` 编译过；`npm run dev` 起在 :3001（3000 占用），curl `/stock` HTTP 200，HTML 验证三栏 + LeftMenu 高亮 + 占位文本全部 OK
 
-### Day 6 — 前端：个股 module 数据流（1d）
+### Day 6 — 前端：个股 module 数据流（1d，2026-04-24 完成）
 
-- [ ] `src/services/{apiClient,stockApi}.ts`
-- [ ] `src/stores/workspaceStore.ts`（zustand）
-- [ ] `src/features/stock/{TickerInput,CompanyView}.tsx`
-- [ ] `src/components/{FinancialKPICard,AnnouncementTimelineCard,ResearchReportListCard}.tsx`
-- [ ] 跑 `贵州茅台` / `AAPL` 渲染主页
+- [x] `src/types/{citation,stock,workspace}.ts` —— 镜像 backend `interfaces.py` + `_schemas.py`，含 discriminated-union over `card_type` 让 TS 在卡片分支处自动窄化 payload
+- [x] `src/services/apiClient.ts` —— 包 fetch + `ApiError` + `NEXT_PUBLIC_API_URL` 默认 `http://localhost:8000`
+- [x] `src/services/stockApi.ts` —— typed `getCompanyOverview(ticker)`
+- [x] `frontend/.env.local.example` —— 列 `NEXT_PUBLIC_API_URL` 一项
+- [x] `src/stores/workspaceStore.ts` —— zustand store with `loadCompany(ticker)` action + 5 selector helpers；status: idle / loading / ready / error 四态
+- [x] `src/components/CitationLabel.tsx` —— inline `[N]` 上标，Day 6 占位"点击直接 window.open(url)"，Day 8 替成 citationStore.open()
+- [x] 3 张卡片：
+  - `FinancialKPICard.tsx`：每行 KPI + recharts sparkline + tabular-nums 数值 + 大数自动转亿/百万显示
+  - `AnnouncementTimelineCard.tsx`：滚动列表 + 日期 + 类型 badge + 外链图标
+  - `ResearchReportListCard.tsx`：共识目标价 + 评级分布带颜色 + 列表
+- [x] `src/features/stock/TickerInput.tsx` —— 输入框 + "分析" 按钮 + 4 个快速试用按钮（600519 / 000858 / AAPL / MSFT）
+- [x] `src/features/stock/CompanyView.tsx` —— 订阅 store，按 status 4 态分支渲染（含 exhaustive switch over card_type）
+- [x] `src/app/stock/page.tsx` —— TickerInput 上 + CompanyView 下
+- [x] `npm run build` 通；/stock 路由 first-load 101KB（recharts ~70KB 主因）
 
 ### Day 7 — 前端：ChatPanel + Vercel AI SDK（1d）
 
