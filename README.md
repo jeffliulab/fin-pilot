@@ -22,16 +22,14 @@
 ```
 fin-pilot/
 ├── docs/                       规划文档（PRD、思路、salvage map）
-├── src/fin_pilot/              主代码包
-│   ├── llm/                    多 provider LLM 抽象（OpenAI/Claude/Ollama）
-│   ├── analysis/               技术指标、情绪、异动、宏观
-│   ├── agents/                 stock/news/analyst agents + Jinja2 prompts
-│   └── data/                   行情、新闻、宏观数据接入
-└── salvaged/                   旧仓库提取出来的参考资产（不在主路径上）
-    ├── ai_financial_advisor/   旧仓库的 tests/docs/requirements 原样保留
-    ├── openmanus_tools/        OpenManus 工具库（16 个 tool 模块，可选参考）
-    └── openmanus_prompts/      OpenManus prompt 模板（8 套）
+└── src/fin_pilot/              主代码包
+    ├── llm/                    多 provider LLM 抽象（OpenAI/Claude/Ollama）
+    ├── analysis/               技术指标、情绪、异动、宏观
+    ├── agents/                 stock/news/analyst agents + Jinja2 prompts
+    └── data/                   行情、新闻、宏观数据接入
 ```
+
+旧仓库的原始拷贝不在树内 —— 如需追溯原文件，去对应的 archived GitHub repo（详见 [docs/SALVAGE_MAP.md](docs/SALVAGE_MAP.md)）。
 
 ## 来源
 

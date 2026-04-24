@@ -1,7 +1,13 @@
 # Salvage Map — 旧仓库 → fin-pilot
 
 记录 2026-04-24 从 5 个已封存的旧 GitHub 仓库中搬运了哪些资产。
-原始仓库虽然 archived 仍可只读访问；本地完整克隆位于 `/tmp/fin-pilot-source-repos/`（重启可能消失）。
+原始仓库均已 archived 但仍可公开只读访问，需要追溯原文件直接去 GitHub 看：
+
+- https://github.com/jeffliulab/AI_Financial_Advisor *(archived)*
+- https://github.com/jeffliulab/Financial_Agent_Try *(archived)*
+- https://github.com/jeffliulab/wencfo *(archived，财务相关已转 agent-as-a-cfo)*
+- https://github.com/jeffliulab/financial_advisor *(archived，财务相关已转 agent-as-a-cfo)*
+- https://github.com/jeffliulab/cfoknows-system *(archived，财务相关已转 agent-as-a-cfo)*
 
 ## 主代码（`src/fin_pilot/`）
 
@@ -23,13 +29,16 @@
 - `notifications/`（telegram/alert，与目标用户不匹配）
 - `cli.py`（旧 Typer 入口，将基于新模块重写）
 
-## 参考资产（`salvaged/`，**不在主代码路径上**）
+## 曾经一度保留、现已删除的参考资产
 
-| 子目录 | 来自 | 用途 |
-|--------|------|------|
-| `ai_financial_advisor/` | AI_Financial_Advisor | 原 README / pyproject / 35 个 pytest 测试 / docs，做为搭模块时的参考与测试种子 |
-| `openmanus_tools/` | Financial_Agent_Try（OpenManus fork） | 16 个工具模块（browser、pdf、bash、web_search、deep_research、MCP 等），日后做"研报抓取 + 公告解析"等可借鉴 |
-| `openmanus_prompts/` | Financial_Agent_Try | 8 套 prompt 模板（SWE / browser / planning / CoT / MCP / toolcall），做提示词工程时参考 |
+初始提交（commit `cc36b03`）时一并保留了一份 `salvaged/` 目录做缓冲，2026-04-24 当天清理掉了 ——
+理念已抽到主代码 + 本文档，原始拷贝去 archived GitHub repo 即可。删除内容包括：
+
+- 来自 AI_Financial_Advisor 的旧 README / pyproject / 35 个 pytest 测试 / docs
+- 来自 Financial_Agent_Try（OpenManus fork）的 16 个工具模块（browser / pdf / web_search / MCP 等）
+- 来自 Financial_Agent_Try 的 8 套 prompt 模板（SWE / browser / planning / CoT / MCP / toolcall）
+
+如未来真要做"研报抓取 + 公告解析"，去 `Financial_Agent_Try` 的 `open_manus/app/{tool,prompt}/` 直接看 GitHub 上的源文件。
 
 ## 已转移到 agent-as-a-cfo 的部分
 
