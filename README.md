@@ -1,49 +1,67 @@
-# FinPilot · 金融从业者的 AI Copilot
+# FinPilot — Cursor for Financial Analysts
 
-> 像 GitHub Copilot 之于程序员，FinPilot 之于金融从业者 ——
-> 让每一位分析师、客户经理、合规专员都有一个懂金融、守合规、能整理的 AI 搭档。
+> Like Cursor for software engineers — FinPilot is a three-pane AI workspace for stock research,
+> industry tracking, and market intelligence, built around the workspace-first-class principle
+> that Brightwave / AlphaSense / Hebbia pioneered.
 
-**定位**：面向**金融行业（投研 / 投顾 / 合规 / 资管）**的 Agent Copilot。
-**不做**：财务记账、报税、CFO 工作流 —— 这些在姐妹项目 [`../agent-as-a-cfo/`](../agent-as-a-cfo/) 里。
+> 🇨🇳 中文版 README → [`README_zh.md`](README_zh.md)
 
-## 计划模块（节选自 [docs/初步探讨思路.txt](docs/初步探讨思路.txt)）
+## What it is
 
-| # | 模块 | 目标用户 | 优先级 |
-|---|------|---------|--------|
-| 1 | 个股 / 行业深度分析（RAG + Function Calling + 多轮追问） | 投研分析师 | **必做** |
-| 2 | 销售话术 / 营销物料合规审查（多 Agent 共识） | 客户经理、合规专员 | **必做** |
-| 3 | 投研晨报生成（多源汇总 + 个性化订阅） | 投研助理 | 选做 |
-| 4 | 客户画像与配置建议（结构化抽取 + 规则引擎） | 银行理财经理 | 选做 |
+A fullstack copilot (FastAPI + Next.js) for finance professionals — research analysts, fund managers,
+client advisors. Three modules in v0.x roadmap:
 
-详见 [docs/PRD-draft.md](docs/PRD-draft.md)。
+| # | Module | v0.1 status |
+|---|---|---|
+| 1 | **Stock analysis** — paste ticker → company main page (financials / announcements / research ratings) + natural-language follow-up + citation drawer | ✅ A-shares + US (`600519`, `AAPL`) |
+| 2 | **Industry analysis** — macro / industry / policy / events with Hebbia-style 5×8 generative grid | ⏳ v0.2 |
+| 3 | **Market intelligence** — quotes / capital flows / sentiment / anomaly monitoring | ⏳ v0.3 |
 
-## 仓库结构
+## Why three-pane
+
+Per [`docs/research/competitor-landscape.md`](docs/research/competitor-landscape.md), the
+**workspace + chat** pattern (Brightwave / AlphaSense / Cursor) consistently beats
+**chat-only** (most Chinese incumbents) for analyst workflows: deliverables sediment in the
+workspace, chat drives but doesn't bury results, citations open inline as drawers without
+leaving the page.
+
+## Tech stack
+
+- **Backend**: FastAPI + Python 3.11 + LangGraph + AKShare (A-shares) + SEC EDGAR (US) + yfinance
+- **Frontend**: Next.js 14 + TypeScript strict + Tailwind + shadcn/ui + Zustand + TanStack Query + Vercel AI SDK
+- **LLM**: Anthropic Claude 3.5 Sonnet default; OpenAI / DeepSeek / Ollama via salvaged provider abstraction
+- **Storage**: in-memory in v0.1 (zustand); SQLite in v0.4
+
+This stack is the union of [Brightwave / Perplexity / Cursor / ai-hedge-fund](docs/research/competitor-landscape.md) — see plan §11.1 for industry-standard rationale.
+
+## Repo layout
 
 ```
 fin-pilot/
-├── docs/                       规划文档（PRD、思路、salvage map）
-└── src/fin_pilot/              主代码包
-    ├── llm/                    多 provider LLM 抽象（OpenAI/Claude/Ollama）
-    ├── analysis/               技术指标、情绪、异动、宏观
-    ├── agents/                 stock/news/analyst agents + Jinja2 prompts
-    └── data/                   行情、新闻、宏观数据接入
+├── AGENTS.md / CLAUDE.md         agent rules entry (→ ~/Local_Root/agent-rules/)
+├── VERSIONS.md                   version overview (rapid-versioning, pre-1.0)
+├── README.md / README_zh.md      English / Chinese
+├── pyproject.toml                backend deps
+├── .env.example                  required env keys
+├── docs/
+│   ├── PRD.md                    product requirements
+│   ├── architecture.md           system architecture (3-pane + data flow)
+│   ├── NEXT_STEPS.md             current v0.1.0 task list
+│   ├── SALVAGE_MAP.md            provenance of code from archived repos
+│   ├── research/                 frozen research snapshots
+│   │   ├── competitor-landscape.md
+│   │   └── data-sources.md
+│   └── versions/v0.1.0.md        per-version dev log
+├── backend/                      FastAPI three-layer (routes / services / repositories)
+└── frontend/                     Next.js (created in Day 5)
 ```
 
-旧仓库的原始拷贝不在树内 —— 如需追溯原文件，去对应的 archived GitHub repo（详见 [docs/SALVAGE_MAP.md](docs/SALVAGE_MAP.md)）。
+## Status
 
-## 来源
+🚧 **v0.1.0 in development** (started 2026-04-24). See [`VERSIONS.md`](VERSIONS.md) for roadmap and [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md) for current tasks.
 
-本项目从以下 5 个**已封存（archived）**仓库中筛选搬运而来，详见 [docs/SALVAGE_MAP.md](docs/SALVAGE_MAP.md)：
+This project was bootstrapped from 5 archived predecessor repos under `jeffliulab/` (see [`docs/SALVAGE_MAP.md`](docs/SALVAGE_MAP.md)). Finance-related (accounting / tax / CFO) content lives in the sibling project [`agent-as-a-cfo`](https://github.com/jeffliulab/agent-as-a-cfo).
 
-- `jeffliulab/AI_Financial_Advisor` ← 主要源（LLM/indicators/agents）
-- `jeffliulab/Financial_Agent_Try` ← OpenManus 工具库（参考）
-- `jeffliulab/wencfo` ← 财务相关 → 已转移至 `../agent-as-a-cfo/`
-- `jeffliulab/financial_advisor` ← 财务相关 → 已转移至 `../agent-as-a-cfo/`
-- `jeffliulab/cfoknows-system` ← 财务 .NET 架构 → 已转移至 `../agent-as-a-cfo/`
+## License
 
-## 状态
-
-🚧 早期脚手架阶段。代码继承自旧仓库，**尚未做适配验证**。下一步：
-1. 选定模块 1 和模块 2 的最小可演示路径；
-2. 把 `src/fin_pilot/llm/` 里的 provider 抽象打通到模块 1；
-3. 写 PRD 终稿（见 `docs/PRD-draft.md`）。
+TBD (will follow [agent-rules workflows/github.md](https://github.com/jeffliulab/agent-rules) when public).
