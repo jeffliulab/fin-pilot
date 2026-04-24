@@ -28,12 +28,16 @@
 - [x] `backend/tests/test_market_factory.py` + `test_akshare_provider.py` + `test_edgar_provider.py`：35 tests，全部 PASS（mock akshare 模块 + mock httpx，无需真网络）
 - [-] `yfinance_provider.py`：**Day 2 不做**。salvaged `stock_data.py` 已经能拿价格；v0.1 的 3 张卡（财务 KPI / 公告 / 研报）都不需要 OHLCV 时间序列，所以不必把 yfinance 包进 `MarketDataProvider`。需要价格图表时（v0.2 或 v0.4）再加
 
-### Day 3 — 后端：services + routes（1d）
+### Day 3 — 后端：services + routes（1d，2026-04-24 完成）
 
-- [ ] `backend/services/stock/company_overview.py`：拼装 5 张 CompanyCard
-- [ ] `backend/routes/stock.py`：`GET /api/v1/stock/{ticker}/overview`
-- [ ] `backend/routes/health.py`：`GET /healthz`
-- [ ] `backend/main.py`：FastAPI app + CORS（白名单 `localhost:3000`）
+- [x] 重写 `backend/config.py` —— 删 NewsAPI/FRED/Notification/Storage 旧字段；新增 `LLMSettings`（含 4 个 provider key）+ `StockDataSettings`（SEC_EDGAR_USER_AGENT / Tushare / Finnhub）+ `APISettings`（CORS_ORIGINS）；`get_settings()` 用 lru_cache 做单例
+- [x] 同步重写 `backend/llm/factory.py` —— 适配新 LLMSettings；4 个 provider 的默认 model 用注册表；DeepSeek 走 OpenAI 兼容 API（base_url=https://api.deepseek.com）
+- [x] `backend/services/stock/company_overview.py` —— 拼装 **3** 张 CompanyCard（PRD 实际是 3，原计划"5 张"是误记）：financial_kpi（含 4 期 trend）+ announcement_timeline + research_report（含共识目标价 + 评级分布）
+- [x] `backend/routes/_schemas.py` —— Pydantic 响应模型（CitationOut / CompanyCardOut / CompanyOverviewResponse / HealthResponse），按 stack 规范"request/response 用 Pydantic"
+- [x] `backend/routes/stock.py` —— `GET /api/v1/stock/{ticker}/overview`，错误映射：UnsupportedMarketError → 422 / DataSourceError → 502 / 空 cards → 404
+- [x] `backend/routes/health.py` —— `GET /healthz` 返 status + version
+- [x] `backend/main.py` —— FastAPI app factory + lifespan + CORS 白名单 + 注册 routes；`uvicorn backend.main:app --reload --port 8000`
+- [x] 测试：`test_company_overview.py`（5）+ `test_main_app.py`（6）；累计 46 tests 全绿
 
 ### Day 4 — 后端：chat + LLM（1d）
 
