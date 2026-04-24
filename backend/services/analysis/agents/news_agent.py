@@ -18,7 +18,7 @@ from ..llm import LLMProvider, get_llm
 logger = logging.getLogger(__name__)
 
 _PROMPT_ENV = Environment(
-    loader=PackageLoader("fin_pilot.agents", "prompts"),
+    loader=PackageLoader("backend.data.prompts", "analysis"),
     trim_blocks=True,
     lstrip_blocks=True,
 )
