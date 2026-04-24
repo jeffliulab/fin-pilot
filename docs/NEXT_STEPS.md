@@ -18,14 +18,15 @@
 - [ ] 创建虚拟环境 `conda create -n fin-pilot python=3.11`（用户本地执行）
 - [ ] 跑 `from backend.llm import get_llm` 通
 
-### Day 2 — 后端：数据 provider（1d）
+### Day 2 — 后端：数据 provider（1d，2026-04-24 完成）
 
-- [ ] `backend/repositories/market/base.py`：`MarketDataProvider` Protocol + dataclass
-- [ ] `backend/repositories/market/akshare_provider.py`：A 股财务/公告/研报元数据
-- [ ] `backend/repositories/market/edgar_provider.py`：美股 SEC XBRL
-- [ ] `backend/repositories/market/yfinance_provider.py`：美股价格
-- [ ] `backend/repositories/market/factory.py`：detect_market_type → provider
-- [ ] `backend/tests/test_akshare_provider.py` + `test_edgar_provider.py`
+- [x] `backend/interfaces.py`：`MarketDataProvider` Protocol + 跨层 dataclass（Citation / CompanyCard / FinancialStatements / Announcement / ResearchReport / DataSourceError）—— Protocol 放 interfaces.py 比单独 base.py 更符合 agent-rules"跨层契约集中"原则
+- [x] `backend/constants.py`：limits / endpoints / 魔法数字
+- [x] `backend/repositories/market/akshare_provider.py`：A 股财务/公告/研报元数据
+- [x] `backend/repositories/market/edgar_provider.py`：美股 SEC XBRL（companyfacts + submissions），含 ticker→CIK 缓存 + 150ms rate-limiting
+- [x] `backend/repositories/market/factory.py`：`get_provider(ticker)` + `UnsupportedMarketError`（非 A/US 市场拒绝）
+- [x] `backend/tests/test_market_factory.py` + `test_akshare_provider.py` + `test_edgar_provider.py`：35 tests，全部 PASS（mock akshare 模块 + mock httpx，无需真网络）
+- [-] `yfinance_provider.py`：**Day 2 不做**。salvaged `stock_data.py` 已经能拿价格；v0.1 的 3 张卡（财务 KPI / 公告 / 研报）都不需要 OHLCV 时间序列，所以不必把 yfinance 包进 `MarketDataProvider`。需要价格图表时（v0.2 或 v0.4）再加
 
 ### Day 3 — 后端：services + routes（1d）
 
