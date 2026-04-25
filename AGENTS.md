@@ -42,6 +42,31 @@
 - Conventional Commits：`type(scope): description`
 - `src/` → `backend/` 重组等大变动作为独立 commit
 
+### 端口分配（启动 dev server 前必读）
+
+按 [agent-rules / workflows/local-dev.md](https://github.com/jeffliulab/agent-rules)。**绝不假设默认端口空闲**。
+
+**约定的端口段**（fin-pilot）：
+| 服务 | 默认 | 探测段 | env 覆盖 |
+|---|---|---|---|
+| FastAPI backend | 8000 | 8000-8010 | `--port` flag |
+| Next.js frontend | 3000 | 3000-3010 | `npm run dev -- --port N` |
+
+**启动流程**：
+1. `lsof -nP -iTCP:<port> -sTCP:LISTEN` 探测；如占用，按段顺移到下一个空闲端口
+2. backend 启动时如非默认 8000，必须把对应 frontend 端口加入 `CORS_ORIGINS` env：
+   ```bash
+   CORS_ORIGINS="http://localhost:3000,http://localhost:3001" \
+     uvicorn backend.main:app --port 8001
+   ```
+3. frontend 启动时如 backend 非默认 8000，必须传 `NEXT_PUBLIC_API_URL`：
+   ```bash
+   NEXT_PUBLIC_API_URL=http://localhost:8001 \
+     npm run dev -- --port 3001
+   ```
+4. 启动后**必须**用 `Origin` 头 curl 一次后端验证 CORS 正确回 `Access-Control-Allow-Origin`，不能只看 dev server log
+5. **永不修改 `.env`** 来切换端口 / CORS：env 是用户的 sandbox，覆盖走 process env
+
 ### 文档语言
 - 文件 / 目录英文优先（`初步探讨思路.txt` 等 legacy 名豁免）
 - 文档正文中文（简体）
