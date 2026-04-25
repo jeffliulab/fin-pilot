@@ -1,117 +1,98 @@
-# v0.1.0 任务清单
+# 当前任务清单
 
-> 按 [agent-rules / workflows/rapid-versioning.md](https://github.com/jeffliulab/agent-rules) 的轻量模式。
-> 完成的勾上 `[x]`，新发现的任务即时追加。版本总览见 [`../VERSIONS.md`](../VERSIONS.md)。
+> 按 [agent-rules / workflows/rapid-versioning.md](https://github.com/jeffliulab/agent-rules) 轻量模式。
+> 完成的勾上 `[x]`，新发现的任务即时追加。
+> 版本总览 → [`../VERSIONS.md`](../VERSIONS.md)；版本日志 → [`versions/`](versions/)。
 
-## 进行中
+## 当前状态
 
-### Day 1 — 工程地基（0.5d）
+- ✅ **v0.1.0 已封版**（2026-04-24，git tag `v0.1.0`）—— 详见 [`versions/v0.1.0-封版.md`](versions/v0.1.0-封版.md)
+- ⏳ **v0.2.0 开发中** —— 行业模块 + Generative Grid；详细计划见 [`versions/v0.2.0-开发中.md`](versions/v0.2.0-开发中.md)
+  - 待用户 ack [v0.2.0-开发中.md §11](versions/v0.2.0-开发中.md) 决策 A + B 后启动 Day 1
 
-- [x] 设置版本追踪三件套（`VERSIONS.md` + `docs/NEXT_STEPS.md` + `docs/versions/v0.1.0.md`）
-- [x] 写 `AGENTS.md` + `CLAUDE.md` shim（指向 agent-rules）
-- [x] 搬调研报告 `.claude/plans/*` → `docs/research/`
-- [x] 重写 `README.md` 为英文 + 新增 `README_zh.md`
-- [x] 重写 `docs/PRD-draft.md` → `docs/PRD.md`（金融版 Cursor 方向）
-- [x] 新增 `docs/architecture.md`（三栏 + 数据流）
-- [x] `src/fin_pilot/` → `backend/` 搬迁（按 plan §5 目录布局；独立 commit）
-- [x] 写 `pyproject.toml` + `.env.example`
-- [ ] 创建虚拟环境 `conda create -n fin-pilot python=3.11`（用户本地执行）
-- [ ] 跑 `from backend.llm import get_llm` 通
+## v0.2.0 任务清单
 
-### Day 2 — 后端：数据 provider（1d，2026-04-24 完成）
+### 启动前阻塞
 
-- [x] `backend/interfaces.py`：`MarketDataProvider` Protocol + 跨层 dataclass（Citation / CompanyCard / FinancialStatements / Announcement / ResearchReport / DataSourceError）—— Protocol 放 interfaces.py 比单独 base.py 更符合 agent-rules"跨层契约集中"原则
-- [x] `backend/constants.py`：limits / endpoints / 魔法数字
-- [x] `backend/repositories/market/akshare_provider.py`：A 股财务/公告/研报元数据
-- [x] `backend/repositories/market/edgar_provider.py`：美股 SEC XBRL（companyfacts + submissions），含 ticker→CIK 缓存 + 150ms rate-limiting
-- [x] `backend/repositories/market/factory.py`：`get_provider(ticker)` + `UnsupportedMarketError`（非 A/US 市场拒绝）
-- [x] `backend/tests/test_market_factory.py` + `test_akshare_provider.py` + `test_edgar_provider.py`：35 tests，全部 PASS（mock akshare 模块 + mock httpx，无需真网络）
-- [-] `yfinance_provider.py`：**Day 2 不做**。salvaged `stock_data.py` 已经能拿价格；v0.1 的 3 张卡（财务 KPI / 公告 / 研报）都不需要 OHLCV 时间序列，所以不必把 yfinance 包进 `MarketDataProvider`。需要价格图表时（v0.2 或 v0.4）再加
+- [ ] 用户 ack 决策 **A**（LLM provider 默认；推荐 OpenAI gpt-4o-mini）
+- [ ] 用户 ack 决策 **B**（8 问题模板内容是否调整）
 
-### Day 3 — 后端：services + routes（1d，2026-04-24 完成）
+### Day 1 — 行业数据源调研（0.5d）
 
-- [x] 重写 `backend/config.py` —— 删 NewsAPI/FRED/Notification/Storage 旧字段；新增 `LLMSettings`（含 4 个 provider key）+ `StockDataSettings`（SEC_EDGAR_USER_AGENT / Tushare / Finnhub）+ `APISettings`（CORS_ORIGINS）；`get_settings()` 用 lru_cache 做单例
-- [x] 同步重写 `backend/llm/factory.py` —— 适配新 LLMSettings；4 个 provider 的默认 model 用注册表；DeepSeek 走 OpenAI 兼容 API（base_url=https://api.deepseek.com）
-- [x] `backend/services/stock/company_overview.py` —— 拼装 **3** 张 CompanyCard（PRD 实际是 3，原计划"5 张"是误记）：financial_kpi（含 4 期 trend）+ announcement_timeline + research_report（含共识目标价 + 评级分布）
-- [x] `backend/routes/_schemas.py` —— Pydantic 响应模型（CitationOut / CompanyCardOut / CompanyOverviewResponse / HealthResponse），按 stack 规范"request/response 用 Pydantic"
-- [x] `backend/routes/stock.py` —— `GET /api/v1/stock/{ticker}/overview`，错误映射：UnsupportedMarketError → 422 / DataSourceError → 502 / 空 cards → 404
-- [x] `backend/routes/health.py` —— `GET /healthz` 返 status + version
-- [x] `backend/main.py` —— FastAPI app factory + lifespan + CORS 白名单 + 注册 routes；`uvicorn backend.main:app --reload --port 8000`
-- [x] 测试：`test_company_overview.py`（5）+ `test_main_app.py`（6）；累计 46 tests 全绿
+- [ ] AKShare `stock_board_industry_*` smoke test：列出所有行业 + 任选一个行业列出成员公司
+- [ ] 评估稳定性 / 限流；如果不稳，准备静态 fallback 字典（覆盖 20 个常用行业）
+- [ ] 决定行业 ID 命名（用东财板块代码还是行业中文名）
 
-### Day 4 — 后端：chat + LLM（1d，2026-04-24 完成）
+### Day 2 — Backend：repositories（1d）
 
-- [x] `backend/data/prompts/stock/{system_prompt,follow_up,company_overview}.j2`：3 个 Jinja2 模板（system 强制 `[N]` 引用规则；follow_up 把 cards/citations/user_message 注入；company_overview 留 v0.2 占位）
-- [x] `backend/services/chat/orchestrator.py`：LangGraph 单节点 graph（`prepare` 节点渲染 prompt）+ Anthropic AsyncAnthropic 直接做 streaming；`ChatChunk` 三种类型（delta / finish / error）
-- [x] `backend/routes/chat.py`：`POST /api/v1/chat/stream`，输出 **Vercel AI SDK Data Stream Protocol**（`0:"text"` / `2:[{...}]` / `d:{...}` 行级前缀），前端 `useChat` 开箱即用；header `x-vercel-ai-data-stream: v1`
-- [x] 在 `backend/main.py` 注册 chat router
-- [x] 测试：`test_chat_orchestrator.py`（5）+ `test_chat_route.py`（7）；累计 58 tests 全绿
-- [x] 烟测通过 TestClient 完成；真 `curl localhost:8000/api/v1/chat/stream` 端到端 smoke 待用户本地 venv + ANTHROPIC_API_KEY
+- [ ] `backend/repositories/industry/__init__.py`
+- [ ] `backend/repositories/industry/akshare_industry_provider.py`：
+  - `list_industries() -> list[Industry]`
+  - `list_companies(industry_id) -> list[Company]`
+- [ ] 单测：mock akshare，验证两个方法的返回结构
 
-### Day 5 — 前端：项目初始化 + 三栏壳（1d，2026-04-24 完成）
+### Day 3 — Backend：单 cell query（1d）
 
-- [x] `cd frontend && npx create-next-app@14 . --typescript --tailwind --app --src-dir --eslint`
-- [x] 装 `zustand @tanstack/react-query lucide-react ai @ai-sdk/react @ai-sdk/anthropic recharts clsx class-variance-authority tailwind-merge tailwindcss-animate`
-- [x] `npx shadcn@latest init --defaults` + 装 `card input scroll-area sheet`（sheet = Radix Drawer 的 shadcn 包装）
-- [x] **修 shadcn v4-by-default vs Tailwind v3 mismatch**：手写 shadcn-v3 标准 globals.css（HSL CSS variables）+ tailwind.config.ts（colors / borderRadius / tailwindcss-animate plugin）
-- [x] 三栏 layout：`src/components/{ThreePaneLayout,LeftMenu,WorkspaceCanvas,ChatPanel}.tsx`
-- [x] 模块路由：`src/app/{stock,industry,market}/page.tsx`（个股是占位输入条；行业/市场是 Coming-in-vX 占位）+ 根 `page.tsx` 重定向到 `/stock`
-- [x] `npm run build` 编译过；`npm run dev` 起在 :3001（3000 占用），curl `/stock` HTTP 200，HTML 验证三栏 + LeftMenu 高亮 + 占位文本全部 OK
+- [ ] `backend/services/industry/__init__.py`
+- [ ] `backend/services/industry/industry_query.py`：
+  - `query_cell(ticker, question, llm, provider) -> AsyncIterator[CellChunk]`
+  - 内部按 question_id 选 prompt + 拉数据 + 走 LLM streaming
+- [ ] 8 个 prompt 模板：`backend/data/prompts/industry/Q1.j2` ... `Q8.j2`
+- [ ] 单测：mock provider + LLM，验证一个 cell 的 stream 流
 
-### Day 6 — 前端：个股 module 数据流（1d，2026-04-24 完成）
+### Day 4-5 — Backend：grid orchestrator + route（1.5d）
 
-- [x] `src/types/{citation,stock,workspace}.ts` —— 镜像 backend `interfaces.py` + `_schemas.py`，含 discriminated-union over `card_type` 让 TS 在卡片分支处自动窄化 payload
-- [x] `src/services/apiClient.ts` —— 包 fetch + `ApiError` + `NEXT_PUBLIC_API_URL` 默认 `http://localhost:8000`
-- [x] `src/services/stockApi.ts` —— typed `getCompanyOverview(ticker)`
-- [x] `frontend/.env.local.example` —— 列 `NEXT_PUBLIC_API_URL` 一项
-- [x] `src/stores/workspaceStore.ts` —— zustand store with `loadCompany(ticker)` action + 5 selector helpers；status: idle / loading / ready / error 四态
-- [x] `src/components/CitationLabel.tsx` —— inline `[N]` 上标，Day 6 占位"点击直接 window.open(url)"，Day 8 替成 citationStore.open()
-- [x] 3 张卡片：
-  - `FinancialKPICard.tsx`：每行 KPI + recharts sparkline + tabular-nums 数值 + 大数自动转亿/百万显示
-  - `AnnouncementTimelineCard.tsx`：滚动列表 + 日期 + 类型 badge + 外链图标
-  - `ResearchReportListCard.tsx`：共识目标价 + 评级分布带颜色 + 列表
-- [x] `src/features/stock/TickerInput.tsx` —— 输入框 + "分析" 按钮 + 4 个快速试用按钮（600519 / 000858 / AAPL / MSFT）
-- [x] `src/features/stock/CompanyView.tsx` —— 订阅 store，按 status 4 态分支渲染（含 exhaustive switch over card_type）
-- [x] `src/app/stock/page.tsx` —— TickerInput 上 + CompanyView 下
-- [x] `npm run build` 通；/stock 路由 first-load 101KB（recharts ~70KB 主因）
+- [ ] `backend/services/industry/grid_orchestrator.py`：
+  - `run_grid(industry_id, tickers[5], questions[8]) -> AsyncIterator[GridEvent]`
+  - asyncio.create_task 并发 5×8 = 40 cells
+  - asyncio.Semaphore(8) 限流
+  - asyncio.as_completed 流式 yield 完成的 cell
+- [ ] `backend/routes/industry.py`：
+  - `GET /api/v1/industries` → list industries
+  - `GET /api/v1/industries/{id}/companies` → list companies
+  - `POST /api/v1/industries/grid/stream` → SSE Vercel AI SDK Data Stream，发 cell_start / cell_delta / cell_done / cell_error data parts
+- [ ] 协议扩展文档（_schemas.py 或 routes/_dsp.py 加注释）
+- [ ] 单测：mock orchestrator，验证协议格式
 
-### Day 7 — 前端：ChatPanel + 流式回答（1d，2026-04-24 完成）
+### Day 6 — Frontend：选择器（1d）
 
-- [x] `src/types/chat.ts` —— ChatMessage / ChatRole / ChatStreamStatus
-- [x] `src/hooks/useChatStream.ts` —— 自写 hook 解析 backend Vercel AI SDK Data Stream Protocol（不复用 `@ai-sdk/react` useChat 因 backend 形状是 `{message, cards, citations}` 不是 OpenAI 风格 messages 数组，转译成本不如自己写 80 行）。包含 abort 控制、状态管理、buffer 切行
-- [x] `src/features/stock/ChatStream.tsx` —— 渲染对话气泡；assistant 文本用 regex 切 `[N]` → CitationLabel；user 在右、assistant 在左、error 红框
-- [x] 重写 `src/components/ChatPanel.tsx` —— 集成 useChatStream + workspaceStore；切 ticker 自动 reset 对话；流式中显 Stop 按钮；未选 ticker 时输入框 disabled + 提示文案；`collectCitations()` 从 cards 聚合去重并重排 `[N]`
-- [x] `npm run build` 通；首屏体积没变（chat 组件复用 ScrollArea / Input / Button）
+- [ ] `frontend/src/types/industry.ts`
+- [ ] `frontend/src/services/industryApi.ts`
+- [ ] `frontend/src/features/industry/IndustryPicker.tsx`：下拉行业列表
+- [ ] `frontend/src/features/industry/CompanyMultiSelect.tsx`：多选公司（最多 5）
+- [ ] `frontend/src/features/industry/QuestionTemplatePicker.tsx`：8 个预设 + 自定义输入
 
-### Day 8 — Citation drawer（0.5d，2026-04-24 完成）
+### Day 7 — Frontend：Grid 组件（1.5d）
 
-- [x] `src/stores/citationStore.ts` —— zustand：`{isOpen, active, open(citation), close()}`
-- [x] `src/components/CitationDrawer.tsx` —— shadcn Sheet（side="right" max-w-2xl），头部显 [N] + source_name + URL + 外链 ↗，正文 iframe 加载 url（sandbox），底部 fallback 提示（"X-Frame-Options 禁嵌入时点 ↗ 新标签打开；v0.5 上 PDF.js 高亮"）
-- [x] 重写 `CitationLabel.tsx` —— 调 citationStore.open() 替代 Day 6 的 window.open，统一走 drawer
-- [x] 在 `app/layout.tsx` 挂 `<CitationDrawer />`（root 层，所有页面共用）
-- [x] `npm run build` 通；/stock 路由 first-load 99.9KB（drawer 复用 sheet 组件，没增体积）
+- [ ] `frontend/src/features/industry/GenerativeGrid.tsx`：CSS Grid 5 行 × 8 列
+- [ ] `frontend/src/components/GridCellResult.tsx`：单 cell（spinner / streaming text / done with [N]）
+- [ ] `frontend/src/stores/gridStore.ts`：cell_id → cell state（content / status / citations）
 
-### Day 9 — 行业 / 市场占位 + 文档（0.5d，2026-04-24 完成）
+### Day 8 — Frontend：Stream hook（1d）
 
-- [x] `src/app/{industry,market}/page.tsx` 占位卡（Day 5 已做）
-- [x] `LeftMenu` 标灰禁用 + tooltip（Day 5 已做）
-- [x] 完善 `docs/architecture.md`（架构 v0.1 落地版，无需大改）
-- [x] 新增 `docs/QUICKSTART.md`：本地启动指南（venv / .env / 双进程跑法 / 5 个常见问题）
-- [x] README.md + README_zh.md：加 Quick start 段落 + 标 v0.1.0 ready
+- [ ] `frontend/src/hooks/useGridStream.ts`：解析 cell_* data parts → 分发到 gridStore
+- [ ] 接通：用户提交 → POST grid/stream → 流式更新 cell
 
-### Day 10 — 归档 v0.1.0（0.5d，2026-04-24 完成）
+### Day 9 — Polish（0.5d）
 
-- [x] `pytest backend/tests/ -v` 全绿（58 tests）
-- [x] `npm run build` 通；/stock first-load 99.9KB
-- [-] 录 60 秒 demo 视频 → README：**留给用户**（agent 不能录屏；用户 venv 跑通后用 OBS / QuickTime 录）
-- [x] `docs/versions/v0.1.0.md` 完整 10 天日志归档
-- [x] 更新 `VERSIONS.md`：v0.1.0 → 已完成栏目，附 git tag + 归档日期
-- [x] commit + 打 `v0.1.0` git tag
+- [ ] Cell 详情抽屉（点 cell 卡片展开）
+- [ ] Cell 失败状态（显示错误 + retry 按钮）
+- [ ] Citation drawer 复用（点 [N] 已通）
+- [ ] 错误处理（部分 cell 失败 graceful，整 grid 不挂）
+
+### Day 10 — Excel 导出 + 归档（0.5d）
+
+- [ ] `pip install openpyxl`
+- [ ] `backend/routes/industry.py` 加 `/api/v1/industries/grid/export.xlsx` endpoint
+- [ ] 前端"导出 Excel"按钮
+- [ ] 端到端 demo 录视频
+- [ ] 更新 `frontend/src/components/LeftMenu.tsx`：industry 模块从 disabled 移到 active
+- [ ] **归档 v0.2.0**：rename `versions/v0.2.0-开发中.md` → `versions/v0.2.0-封版.md`，更新 VERSIONS.md，打 `git tag v0.2.0`
 
 ## 已完成
 
-（v0.1.0 启动时为空，每完成一项从"进行中"勾选移到这里）
+（v0.2.0 启动后每完成一项从"启动前阻塞 / DayN"勾选移到这里）
 
 ## 阻塞
 
-- 无
+- 等用户 ack v0.2.0-开发中.md §11 决策 A + B
