@@ -1,22 +1,22 @@
 # FinPilot — Agent 规则入口
 
-本项目遵守 [`~/Local_Root/agent-rules/agent-rules/`](../agent-rules/agent-rules/) 的统一规范。
+本项目遵守 [`~/Local_Root/agent-rules/agent-rules/`](../../agent-rules/agent-rules/) 的统一规范。
 
 ## 项目类型
 
 **fullstack-app** —— 后端 FastAPI + 前端 Next.js。
 
-按 [`paths/fullstack-app.md`](../agent-rules/agent-rules/paths/fullstack-app.md) 阅读顺序：
+按 [`paths/fullstack-app.md`](../../agent-rules/agent-rules/paths/fullstack-app.md) 阅读顺序：
 
-1. [`GLOBAL.md`](../agent-rules/agent-rules/GLOBAL.md)
-2. [`principles/architecture.md`](../agent-rules/agent-rules/principles/architecture.md)
-3. [`principles/engineering.md`](../agent-rules/agent-rules/principles/engineering.md)
-4. [`stacks/python-backend.md`](../agent-rules/agent-rules/stacks/python-backend.md) — 后端 FastAPI 三层
-5. [`stacks/frontend.md`](../agent-rules/agent-rules/stacks/frontend.md) — 前端 Next.js
-6. [`workflows/git.md`](../agent-rules/agent-rules/workflows/git.md)
-7. [`workflows/quality.md`](../agent-rules/agent-rules/workflows/quality.md)
-8. [`workflows/rapid-versioning.md`](../agent-rules/agent-rules/workflows/rapid-versioning.md) — pre-1.0 轻量版本管理
-9. [`workflows/github.md`](../agent-rules/agent-rules/workflows/github.md)（公开仓库）
+1. [`GLOBAL.md`](../../agent-rules/agent-rules/GLOBAL.md)
+2. [`principles/architecture.md`](../../agent-rules/agent-rules/principles/architecture.md)
+3. [`principles/engineering.md`](../../agent-rules/agent-rules/principles/engineering.md)
+4. [`stacks/python-backend.md`](../../agent-rules/agent-rules/stacks/python-backend.md) — 后端 FastAPI 三层
+5. [`stacks/frontend.md`](../../agent-rules/agent-rules/stacks/frontend.md) — 前端 Next.js
+6. [`workflows/git.md`](../../agent-rules/agent-rules/workflows/git.md)
+7. [`workflows/quality.md`](../../agent-rules/agent-rules/workflows/quality.md)
+8. [`workflows/rapid-versioning.md`](../../agent-rules/agent-rules/workflows/rapid-versioning.md) — pre-1.0 轻量版本管理
+9. [`workflows/github.md`](../../agent-rules/agent-rules/workflows/github.md)（公开仓库）
 
 ## 项目专属约定
 

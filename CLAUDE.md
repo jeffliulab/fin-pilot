@@ -6,7 +6,7 @@ canonical 入口在 [`AGENTS.md`](AGENTS.md)。
 
 ## 服务器 / 部署上下文
 
-本项目当前在 Hetzner 服务器（`dev.jeffliulab.com`，IP `89.167.35.145`）上直接开发。服务器 IP、域名、HTTPS、nginx 子路径策略、当前已占用的端口、已部署的"测试网页"（hbi-demo）等公共信息见 [`/home/CLAUDE.md`](../CLAUDE.md)。
+本项目当前在 Hetzner 服务器（`dev.jeffliulab.com`，IP `89.167.35.145`）上直接开发。服务器 IP、域名、HTTPS、nginx 子路径策略、当前已占用的端口、已部署的"测试网页"（hbi-demo）等公共信息见 [`/home/CLAUDE.md`](../../CLAUDE.md)。
 
 > 本仓库 `AGENTS.md` 写的"前端 3000 起步"是 **macOS 本地** 的约定。在服务器上 `3000` 已被 hbi-demo 长期占用，启动 dev server 前必须 `lsof` 实测，按探测段顺移并通过 process env 同步 `CORS_ORIGINS` / `NEXT_PUBLIC_API_URL`，不要改仓库 `.env`。
 
